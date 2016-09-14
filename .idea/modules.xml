@@ -2,8 +2,8 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/RecyclerViewSwipeToDelete.iml" filepath="$PROJECT_DIR$/RecyclerViewSwipeToDelete.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/recycler-view-swipe-to-delete.iml" filepath="$PROJECT_DIR$/recycler-view-swipe-to-delete.iml" />
     </modules>
   </component>
 </project>

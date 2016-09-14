@@ -75,6 +75,7 @@ public class MainActivity extends AppCompatActivity {
      * This is the standard support library way of implementing "swipe to delete" feature. You can do custom drawing in onChildDraw method
      * but whatever you draw will disappear once the swipe is over, and while the items are animating to their new position the recycler view
      * background will be visible. That is rarely an desired effect.
+     * :http://stackoverflow.com/questions/8280027/what-does-porterduff-mode-mean-in-android-graphics-what-does-it-do
      */
     private void setUpItemTouchHelper() {
 
