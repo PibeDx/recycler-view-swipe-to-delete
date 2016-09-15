@@ -1,4 +1,4 @@
-package net.nemanjakovacevic.recyclerviewswipetodelete;
+package net.nemanjakovacevic.recyclerviewswipetodelete.base;
 
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -14,12 +14,14 @@ import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.support.v7.widget.helper.ItemTouchHelper;
 import android.view.LayoutInflater;
-import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
+
+import net.nemanjakovacevic.recyclerviewswipetodelete.R;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -30,7 +32,7 @@ import java.util.List;
  * The interesting parts are drawing while items are animating to their new positions after some items is removed
  * and a possibility to undo the removal.
  */
-public class MainActivity extends AppCompatActivity {
+public class Main2Activity extends AppCompatActivity {
 
     RecyclerView mRecyclerView;
 
@@ -90,9 +92,9 @@ public class MainActivity extends AppCompatActivity {
 
             private void init() {
                 background = new ColorDrawable(Color.RED);
-                xMark = ContextCompat.getDrawable(MainActivity.this, R.drawable.ic_clear_24dp);
+                xMark = ContextCompat.getDrawable(Main2Activity.this, R.drawable.ic_clear_24dp);
                 xMark.setColorFilter(Color.WHITE, PorterDuff.Mode.SRC_ATOP);
-                xMarkMargin = (int) MainActivity.this.getResources().getDimension(R.dimen.ic_clear_margin);
+                xMarkMargin = (int) Main2Activity.this.getResources().getDimension(R.dimen.ic_clear_margin);
                 initiated = true;
             }
 
@@ -109,6 +111,9 @@ public class MainActivity extends AppCompatActivity {
                 if (testAdapter.isUndoOn() && testAdapter.isPendingRemoval(position)) {
                     return 0;
                 }
+                if (testAdapter.isUndoOn() && testAdapter.isPendingAdd(position)) {
+                    return 0;
+                }
                 return super.getSwipeDirs(recyclerView, viewHolder);
             }
 
@@ -116,12 +121,17 @@ public class MainActivity extends AppCompatActivity {
             public void onSwiped(RecyclerView.ViewHolder viewHolder, int swipeDir) {
                 int swipedPosition = viewHolder.getAdapterPosition();
                 TestAdapter adapter = (TestAdapter)mRecyclerView.getAdapter();
-                boolean undoOn = adapter.isUndoOn();
-                if (undoOn) {
-                    adapter.pendingRemoval(swipedPosition);
-                } else {
-                    adapter.remove(swipedPosition);
+                if (swipeDir == ItemTouchHelper.LEFT){
+                    boolean undoOn = adapter.isUndoOn();
+                    if (undoOn) {
+                        adapter.pendingRemoval(swipedPosition);
+                    } else {
+                        adapter.remove(swipedPosition);
+                    }
+                }else if (swipeDir == ItemTouchHelper.RIGHT) {
+                    adapter.pendingAdd(swipedPosition);
                 }
+
             }
 
             @Override
@@ -252,19 +262,32 @@ public class MainActivity extends AppCompatActivity {
      */
     class TestAdapter extends RecyclerView.Adapter {
 
+        protected static final int VIEW_ITEM = 1;
+        protected static final int VIEW_LEFT = 2;
+        protected static final int VIEW_RIGHT = 3;
+
+        private int typeView = 0;
+
         private static final int PENDING_REMOVAL_TIMEOUT = 3000; // 3sec
 
         List<String> items;
         List<String> itemsPendingRemoval;
+        List<String> itemsRight;
         int lastInsertedIndex; // so we can add some more items for testing purposes
         boolean undoOn; // is undo on, you can turn it on from the toolbar menu
 
         private Handler handler = new Handler(); // hanlder for running delayed runnables
         HashMap<String, Runnable> pendingRunnables = new HashMap<>(); // map of items to pending runnables, so we can cancel a removal if need be
 
+
+        public void setTypeView(int typeView) {
+            this.typeView = typeView;
+        }
+
         public TestAdapter() {
             items = new ArrayList<>();
             itemsPendingRemoval = new ArrayList<>();
+            itemsRight = new ArrayList<>();
             // let's generate some items
             lastInsertedIndex = 15;
             // this should give us a couple of screens worth
@@ -280,34 +303,48 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
-            TestViewHolder viewHolder = (TestViewHolder)holder;
-            final String item = items.get(position);
 
-            if (itemsPendingRemoval.contains(item)) {
-                // we need to show the "undo" state of the row
-                viewHolder.itemView.setBackgroundColor(Color.RED);
-                viewHolder.titleTextView.setVisibility(View.GONE);
-                viewHolder.undoButton.setVisibility(View.VISIBLE);
-                viewHolder.undoButton.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        // user wants to undo the removal, let's cancel the pending task
-                        Runnable pendingRemovalRunnable = pendingRunnables.get(item);
-                        pendingRunnables.remove(item);
-                        if (pendingRemovalRunnable != null) handler.removeCallbacks(pendingRemovalRunnable);
-                        itemsPendingRemoval.remove(item);
-                        // this will rebind the row in "normal" state
-                        notifyItemChanged(items.indexOf(item));
-                    }
-                });
-            } else {
-                // we need to show the "normal" state
-                viewHolder.itemView.setBackgroundColor(Color.WHITE);
-                viewHolder.titleTextView.setVisibility(View.VISIBLE);
-                viewHolder.titleTextView.setText(item);
-                viewHolder.undoButton.setVisibility(View.GONE);
-                viewHolder.undoButton.setOnClickListener(null);
+            if (holder instanceof TestViewHolder){
+                TestViewHolder viewHolder = (TestViewHolder)holder;
+                final String item = items.get(position);
+
+                if (itemsPendingRemoval.contains(item)) {
+                    // we need to show the "undo" state of the row
+                    viewHolder.itemView.setBackgroundColor(Color.RED);
+                    viewHolder.titleTextView.setVisibility(View.GONE);
+                    viewHolder.undoButton.setVisibility(View.VISIBLE);
+                    viewHolder.undoButton.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            // user wants to undo the removal, let's cancel the pending task
+                            Runnable pendingRemovalRunnable = pendingRunnables.get(item);
+                            pendingRunnables.remove(item);
+                            if (pendingRemovalRunnable != null)
+                                handler.removeCallbacks(pendingRemovalRunnable);
+                            itemsPendingRemoval.remove(item);
+                            // this will rebind the row in "normal" state
+                            notifyItemChanged(items.indexOf(item));
+                        }
+                    });
+
+                }else if(itemsRight.contains(item)) {
+                    // we need to show the "undo" state of the row
+                    viewHolder.itemView.setBackgroundColor(Color.RED);
+                    viewHolder.titleTextView.setVisibility(View.VISIBLE);
+                    viewHolder.undoButton.setVisibility(View.VISIBLE);
+                    viewHolder.titleTextView.setText(item);
+                } else {
+                    // we need to show the "normal" state
+                    viewHolder.itemView.setBackgroundColor(Color.WHITE);
+                    viewHolder.titleTextView.setVisibility(View.VISIBLE);
+                    viewHolder.titleTextView.setText(item);
+                    viewHolder.undoButton.setVisibility(View.GONE);
+                    viewHolder.undoButton.setOnClickListener(null);
+                }
             }
+
+
+
         }
 
         @Override
@@ -354,6 +391,14 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
+        public void pendingAdd(int position) {
+            final String item = items.get(position);
+            if (!itemsRight.contains(item)) {
+                itemsRight.add(item);
+                notifyItemChanged(position);
+            }
+        }
+
         public void remove(int position) {
             String item = items.get(position);
             if (itemsPendingRemoval.contains(item)) {
@@ -369,6 +414,16 @@ public class MainActivity extends AppCompatActivity {
             String item = items.get(position);
             return itemsPendingRemoval.contains(item);
         }
+
+        public boolean isPendingAdd(int position) {
+            String item = items.get(position);
+            return itemsRight.contains(item);
+        }
+    }
+
+    class StatusSwiped {
+        public boolean right;
+        public boolean left;
     }
 
     /**
@@ -385,6 +440,13 @@ public class MainActivity extends AppCompatActivity {
             undoButton = (Button) itemView.findViewById(R.id.undo_button);
         }
 
+    }
+
+    static class RightViewHolder extends RecyclerView.ViewHolder {
+        public RightViewHolder(ViewGroup parent) {
+            super(LayoutInflater.from(parent.getContext()).inflate(R.layout.row_swiped_delete,
+                    parent, false));
+        }
     }
 
 }
