@@ -23,7 +23,8 @@ import java.util.List;
 /**
  * Created by jcuentas on 14/09/16.
  */
-public abstract class BaseRecycleViewSwiped<E, V> extends RecyclerView.Adapter<RecyclerView.ViewHolder>
+public abstract class BaseRecycleViewSwiped<E, V>
+        extends RecyclerView.Adapter<RecyclerView.ViewHolder>
         implements OnTouchSwiped<V, E> {
 
 
@@ -34,7 +35,6 @@ public abstract class BaseRecycleViewSwiped<E, V> extends RecyclerView.Adapter<R
     private List<E> itemPendingRemovalList;
     private Handler handler = new Handler();
     HashMap<String, Runnable> pendingRunnables = new HashMap<>();
-    private  OnTouchSwiped onTouchSwiped;
 
     public BaseRecycleViewSwiped(List<E> objects, RecyclerView recyclerView) {
         itemList = objects;
@@ -90,9 +90,9 @@ public abstract class BaseRecycleViewSwiped<E, V> extends RecyclerView.Adapter<R
         final E item = (E) itemList.get(position);
 
         if (itemPendingRemovalList.contains(item)) {
-            onTouchSwiped.onSwipedLeft(viewHolder, position, item);
+            onSwipedLeft((V) viewHolder, position, item);
         } else {
-            onTouchSwiped.onNormal(viewHolder, position, item);
+            onNormal((V)viewHolder, position, item);
         }
     }
 
@@ -367,7 +367,4 @@ public abstract class BaseRecycleViewSwiped<E, V> extends RecyclerView.Adapter<R
     }
 
 }
-interface OnTouchSwiped<V, E> {
-    void onNormal(V viewHolder, int position, E item);
-    void onSwipedLeft(V viewHolder, int position, E item);
-}
+

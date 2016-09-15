@@ -1,4 +1,4 @@
-package net.nemanjakovacevic.recyclerviewswipetodelete.base;
+package net.nemanjakovacevic.recyclerviewswipetodelete;
 
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
