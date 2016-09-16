@@ -14,11 +14,21 @@ import android.view.ViewGroup;
 import android.widget.Button;
 
 import net.nemanjakovacevic.recyclerviewswipetodelete.R;
-import net.nemanjakovacevic.recyclerviewswipetodelete.adapter.AdapterSwiped;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+
+/* Implement:
+        placaAdapter = new PlacaAdapter(contractorList, rviContainer);
+        placaAdapter.setOnClickListener(this);
+        placaAdapter.setUndoOn(true);
+        rviContainer.setLayoutManager(new LinearLayoutManager(this));
+        rviContainer.setAdapter(placaAdapter);
+        rviContainer.setHasFixedSize(true);
+*/
+
+
 
 /**
  * Created by jcuentas on 14/09/16.
@@ -34,7 +44,7 @@ public abstract class BaseRecycleViewSwiped<E, V>
     protected List<E> itemList;
     private List<E> itemPendingRemovalList;
     private Handler handler = new Handler();
-    HashMap<String, Runnable> pendingRunnables = new HashMap<>();
+    HashMap<E, Runnable> pendingRunnables = new HashMap<>();
 
     public BaseRecycleViewSwiped(List<E> objects, RecyclerView recyclerView) {
         itemList = objects;
@@ -42,9 +52,10 @@ public abstract class BaseRecycleViewSwiped<E, V>
 
         setUpItemTouchHelper(recyclerView);
         setUpAnimationDecoratorHelper(recyclerView);
-        for (int i=1; i<= 15; i++) {
-            this.itemList.add((E)("Item " + i));
-        }
+        //Probar este error con el util
+//        for (int i=1; i<= 15; i++) {
+//            this.itemList.add((E)("Item " + i));
+//        }
     }
 
     @Override public RecyclerView.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
@@ -58,9 +69,9 @@ public abstract class BaseRecycleViewSwiped<E, V>
         if (viewHolder instanceof BaseViewHolder){
             holder = (BaseViewHolder) viewHolder;
             // we need to show the "normal" state
-            holder.itemView.setBackgroundColor(Color.WHITE);
+            holder.itemView.setBackgroundColor(Color.TRANSPARENT);
             holder.llaContainer.setVisibility(View.VISIBLE);
-            holder.undoButton.setVisibility(View.GONE);
+            holder.undoButton.setVisibility(View.INVISIBLE);
             holder.undoButton.setOnClickListener(null);
         }
         swiperNormal(viewHolder, position, item);
@@ -72,7 +83,7 @@ public abstract class BaseRecycleViewSwiped<E, V>
             holder = (BaseViewHolder) viewHolder;
             // we need to show the "undo" state of the row
             holder.itemView.setBackgroundColor(Color.RED);
-            holder.llaContainer.setVisibility(View.GONE);
+            holder.llaContainer.setVisibility(View.INVISIBLE);
             holder.undoButton.setVisibility(View.VISIBLE);
             holder.undoButton.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -83,16 +94,13 @@ public abstract class BaseRecycleViewSwiped<E, V>
         }
     }
 
-
-
     @Override public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
-        BaseViewHolder viewHolder = (BaseViewHolder) holder;
-        final E item = (E) itemList.get(position);
+        final E item = itemList.get(position);
 
         if (itemPendingRemovalList.contains(item)) {
-            onSwipedLeft((V) viewHolder, position, item);
+            onSwipedLeft((V) holder, position, item);
         } else {
-            onNormal((V)viewHolder, position, item);
+            onNormal((V)holder, position, item);
         }
     }
 
@@ -144,7 +152,7 @@ public abstract class BaseRecycleViewSwiped<E, V>
                 }
             };
             handler.postDelayed(pendingRemovalRunnable, PENDING_REMOVAL_TIMEOUT);
-            pendingRunnables.put(item.toString(), pendingRemovalRunnable);
+            pendingRunnables.put(item, pendingRemovalRunnable);
         }
     }
 
@@ -220,7 +228,7 @@ public abstract class BaseRecycleViewSwiped<E, V>
             @Override
             public int getSwipeDirs(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder) {
                 int position = viewHolder.getAdapterPosition();
-                AdapterSwiped testAdapter = (AdapterSwiped)recyclerView.getAdapter();
+                BaseRecycleViewSwiped testAdapter = (BaseRecycleViewSwiped)recyclerView.getAdapter();
                 if (testAdapter.isUndoOn() && testAdapter.isPendingRemoval(position)) {
                     return 0;
                 }
@@ -230,7 +238,7 @@ public abstract class BaseRecycleViewSwiped<E, V>
             @Override
             public void onSwiped(RecyclerView.ViewHolder viewHolder, int swipeDir) {
                 int swipedPosition = viewHolder.getAdapterPosition();
-                AdapterSwiped adapter = (AdapterSwiped)mRecyclerView.getAdapter();
+                BaseRecycleViewSwiped adapter = (BaseRecycleViewSwiped)mRecyclerView.getAdapter();
                 if (swipeDir == ItemTouchHelper.LEFT){
                     boolean undoOn = adapter.isUndoOn();
                     if (undoOn) {
